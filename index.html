@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulter mes notes</title>
+</head>
+<body>
+  <h1>Consulter mes notes</h1>
+  <p>Entrez votre numéro d'identification (10 derniers chiffres) :</p>
+  <input type="text" id="studentId" placeholder="Ex: XXXXXXXXXX">
+  <button onclick="showGrade()">Voir mes notes</button>
+  <p id="result"></p>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/11r7Fnvi4TfsTApfIWjONqW1WZJ35_kj0Yw1fzUdPZxM/gviz/tq?tqx=out:json&sheet=Feuille1"; // Remplace par ton URL
+    function showGrade() {
+      const id = document.getElementById("studentId").value;
+      fetch(sheetUrl)
+        .then(response => response.text())
+        .then(data => {
+          const jsonData = JSON.parse(data.substring(47, data.length - 2));
+          const rows = jsonData.table.rows;
+          for (let row of rows) {
+            if (row.c[0].v === parseInt(id)) {
+              document.getElementById("result").innerHTML =
+                `Évaluation: ${row.c[3].v} | Devoir: ${row.c[4].v} | Composition: ${row.c[5].v} | Moyenne: ${row.c[6].v} | Observation: ${row.c[7] ? row.c[7].v : ''}`;
+              return;
+            }
+          }
+          document.getElementById("result").innerHTML = "Identifiant incorrect ou non trouvé.";
+        })
+        .catch(error => console.error("Erreur:", error));
+    }
+  </script>
+</body>
+</html>
