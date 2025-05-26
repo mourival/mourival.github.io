@@ -110,28 +110,28 @@
       .then(csvText => {
         const rows = csvText.split('\n').slice(1); // Ignorer l'en-tête
         students = rows.map(row => {
-          // Vérifier si la ligne est vide ou mal formatée
+          // Ignorer les lignes vides ou mal formatées
           if (!row || row.trim() === '') return null;
 
-          const columns = row.split(',').map(item => item ? item.trim() : '');
-          const [id, fullName, evaluation, devoir, averageEvaluation, exam, subjectAverage, observation] = columns;
+          const columns = row.split(';').map(item => item ? item.trim() : '');
+          const [id, nom, prenom, evaluation, devoir, averageEvaluation, exam, subjectAverage, observation] = columns;
 
           // Vérifier si les colonnes nécessaires existent
-          if (!id || !fullName) return null;
+          if (!id || !nom || !prenom) return null;
 
-          const nameParts = fullName ? fullName.split(' ') : ['', ''];
-          const [prenom, nom] = [nameParts[0] || '', nameParts[1] || ''];
+          // Convertir les virgules décimales en points pour parseFloat
+          const replaceComma = (value) => (value ? parseFloat(value.replace(',', '.')) || 0 : 0);
 
           return {
             id: id ? id.replace(/"/g, '') : '',
             prenom: prenom ? prenom.replace(/"/g, '') : '',
             nom: nom ? nom.replace(/"/g, '') : '',
             grades: {
-              "التقويم": evaluation ? parseFloat(evaluation.replace(/"/g, '')) || 0 : 0,
-              "الفرض": devoir ? parseFloat(devoir.replace(/"/g, '')) || 0 : 0,
-              "معدل التقويم": averageEvaluation ? parseFloat(averageEvaluation.replace(/"/g, '')) || 0 : 0,
-              "الإختبار": exam ? parseFloat(exam.replace(/"/g, '')) || 0 : 0,
-              "معدل المادة": subjectAverage ? parseFloat(subjectAverage.replace(/"/g, '')) || 0 : 0,
+              "التقويم": replaceComma(evaluation),
+              "الفرض": replaceComma(devoir),
+              "معدل التقويم": replaceComma(averageEvaluation),
+              "الإختبار": replaceComma(exam),
+              "معدل المادة": replaceComma(subjectAverage),
               "التقديرات": observation ? observation.replace(/"/g, '') : ''
             }
           };
