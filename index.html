@@ -110,22 +110,32 @@
       .then(csvText => {
         const rows = csvText.split('\n').slice(1); // Ignorer l'en-tête
         students = rows.map(row => {
-          const [id, fullName, evaluation, devoir, averageEvaluation, exam, subjectAverage, observation] = row.split(',').map(item => item.trim());
-          const [prenom, nom] = fullName.split(' ');
+          // Vérifier si la ligne est vide ou mal formatée
+          if (!row || row.trim() === '') return null;
+
+          const columns = row.split(',').map(item => item ? item.trim() : '');
+          const [id, fullName, evaluation, devoir, averageEvaluation, exam, subjectAverage, observation] = columns;
+
+          // Vérifier si les colonnes nécessaires existent
+          if (!id || !fullName) return null;
+
+          const nameParts = fullName ? fullName.split(' ') : ['', ''];
+          const [prenom, nom] = [nameParts[0] || '', nameParts[1] || ''];
+
           return {
-            id: id.replace(/"/g, ''),
-            prenom: prenom.replace(/"/g, ''),
+            id: id ? id.replace(/"/g, '') : '',
+            prenom: prenom ? prenom.replace(/"/g, '') : '',
             nom: nom ? nom.replace(/"/g, '') : '',
             grades: {
-              "التقويم": parseFloat(evaluation.replace(/"/g, '')) || 0,
-              "الفرض": parseFloat(devoir.replace(/"/g, '')) || 0,
-              "معدل التقويم": parseFloat(averageEvaluation.replace(/"/g, '')) || 0,
-              "الإختبار": parseFloat(exam.replace(/"/g, '')) || 0,
-              "معدل المادة": parseFloat(subjectAverage.replace(/"/g, '')) || 0,
-              "التقديرات": observation.replace(/"/g, '')
+              "التقويم": evaluation ? parseFloat(evaluation.replace(/"/g, '')) || 0 : 0,
+              "الفرض": devoir ? parseFloat(devoir.replace(/"/g, '')) || 0 : 0,
+              "معدل التقويم": averageEvaluation ? parseFloat(averageEvaluation.replace(/"/g, '')) || 0 : 0,
+              "الإختبار": exam ? parseFloat(exam.replace(/"/g, '')) || 0 : 0,
+              "معدل المادة": subjectAverage ? parseFloat(subjectAverage.replace(/"/g, '')) || 0 : 0,
+              "التقديرات": observation ? observation.replace(/"/g, '') : ''
             }
           };
-        }).filter(student => student.id); // Filtrer les lignes vides
+        }).filter(student => student && student.id); // Filtrer les lignes nulles ou sans ID
       })
       .catch(error => {
         console.error('Erreur lors du chargement du CSV:', error);
@@ -146,7 +156,7 @@
       gradesBody.innerHTML = "";
       gradesTable.style.display = "none";
       error.style.display = "none";
-      error.classList.remove("error-invalid-id"); // Retirer la classe avant de vérifier
+      error.classList.remove("error-invalid-id");
       welcome.style.display = "none";
 
       // Vérifier si l'entrée est vide
@@ -159,7 +169,7 @@
       // Vérifier si l'étudiant existe
       if (!student) {
         error.textContent = "هذا حدث خطأ: رقم الهوية غير صحيح أو الطالب غير موجود !";
-        error.classList.add("error-invalid-id"); // Ajouter la classe pour ce message
+        error.classList.add("error-invalid-id");
         error.style.display = "block";
         return;
       }
