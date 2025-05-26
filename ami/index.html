@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نتائج الفصل الثالث</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+      text-align: right;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    #searchForm {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #studentId {
+      padding: 10px;
+      font-size: 16px;
+      width: 200px;
+      text-align: right;
+    }
+    #searchBtn {
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #searchBtn:hover {
+      background-color: #0056b3;
+    }
+    #gradesTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    #gradesTable th, #gradesTable td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    #gradesTable th {
+      background-color: #007BFF;
+      color: white;
+    }
+    #gradesTable tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    #error, #welcome {
+      text-align: center;
+      margin: 10px 0;
+      display: none;
+    }
+    #error {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border: 1px solid #ffeeba;
+    }
+    #welcome {
+      color: #333;
+      font-weight: bold;
+    }
+    .error-invalid-id {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>استعلام عن النتائج - أصدقاء</h1>
+  <form id="searchForm">
+    <label for="studentId">رقم التعريف الوطني (آخر 10 أرقام):</label>
+    <input type="text" id="studentId" placeholder="مثال: xxxxxxxxxx">
+    <button type="submit" id="searchBtn">استعلام</button>
+  </form>
+  <p id="error">هذا حدث خطأ: يرجى التأكد من المعلومات </p>
+  <p id="welcome"></p>
+  <table id="gradesTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>رقم</th>
+        <th>الاسم</th>
+        <th>اللقب</th>
+        <th>التقويم</th>
+        <th>الفرض</th>
+        <th>معدل التقويم</th>
+        <th>الإختبار</th>
+        <th>معدل المادة</th>
+        <th>التقديرات</th>
+      </tr>
+    </thead>
+    <tbody id="gradesBody"></tbody>
+  </table>
+
+  <script>
+    let students = [];
+
+    fetch('https://raw.githubusercontent.com/mourival/mourival.github.io/main/ami/NotesAmi.csv')
+      .then(response => response.text())
+      .then(csvText => {
+        const rows = csvText.split('\n').slice(1);
+        students = rows.map(row => {
+          if (!row || row.trim() === '') return null;
+
+          const columns = row.split(';').map(item => item ? item.trim() : '');
+          const [id, nom, prenom, evaluation, devoir, averageEvaluation, exam, subjectAverage, observation] = columns;
+
+          if (!id || !nom || !prenom) return null;
+
+          const replaceComma = (value) => (value ? parseFloat(value.replace(',', '.')) || 0 : 0);
+
+          return {
+            id: id ? id.replace(/"/g, '') : '',
+            prenom: prenom ? prenom.replace(/"/g, '') : '',
+            nom: nom ? nom.replace(/"/g, '') : '',
+            grades: {
+              "التقويم": replaceComma(evaluation),
+              "الفرض": replaceComma(devoir),
+              "معدل التقويم": replaceComma(averageEvaluation),
+              "الإختبار": replaceComma(exam),
+              "معدل المادة": replaceComma(subjectAverage),
+              "التقديرات": observation ? observation.replace(/"/g, '') : ''
+            }
+          };
+        }).filter(student => student && student.id);
+      })
+      .catch(error => {
+        console.error('Erreur lors du chargement du CSV:', error);
+        document.getElementById("error").textContent = " حدث خطأ: لا يمكن تحميل البيانات. تحقق من الاتصال.";
+        document.getElementById("error").style.display = "block";
+      });
+
+    document.getElementById("searchForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const studentId = document.getElementById("studentId").value.trim();
+      const student = students.find(s => s.id === studentId);
+      const gradesTable = document.getElementById("gradesTable");
+      const gradesBody = document.getElementById("gradesBody");
+      const error = document.getElementById("error");
+      const welcome = document.getElementById("welcome");
+
+      gradesBody.innerHTML = "";
+      gradesTable.style.display = "none";
+      error.style.display = "none";
+      error.classList.remove("error-invalid-id");
+      welcome.style.display = "none";
+
+      if (!studentId) {
+        error.textContent = " حدث خطأ: يرجى إدخال رقم التعريف الوطني !";
+        error.style.display = "block";
+        return;
+      }
+
+      if (!student) {
+        error.textContent = " حدث خطأ: رقم الهوية غير صحيح أو الطالب غير موجود !";
+        error.classList.add("error-invalid-id");
+        error.style.display = "block";
+        return;
+      }
+
+      welcome.textContent = `مرحبا، ${student.prenom} ${student.nom} ! إليك نتائجك :`;
+      welcome.style.display = "block";
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${student.id}</td>
+        <td>${student.prenom}</td>
+        <td>${student.nom}</td>
+        <td>${student.grades["التقويم"]}</td>
+        <td>${student.grades["الفرض"]}</td>
+        <td>${student.grades["معدل التقويم"]}</td>
+        <td>${student.grades["الإختبار"]}</td>
+        <td>${student.grades["معدل المادة"]}</td>
+        <td>${student.grades["التقديرات"]}</td>
+      `;
+      gradesBody.appendChild(row);
+      gradesTable.style.display = "table";
+
+      document.getElementById("studentId").value = "";
+    });
+  </script>
+</body>
+</html>
